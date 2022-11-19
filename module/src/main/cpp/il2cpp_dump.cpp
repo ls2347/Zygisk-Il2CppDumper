@@ -378,72 +378,15 @@ void il2cpp_dump(void *handle, char *outDir) {
         LOGI("Version greater than 2018.3");
         //使用il2cpp_image_get_class
         for (int i = 0; i < size; ++i) {
-            auto image = il2cpp_assembly_get_image(assemblies[i]);
-            std::stringstream imageStr;
-            imageStr << "\n// Dll : " << il2cpp_image_get_name(image);
-            auto classCount = il2cpp_image_get_class_count(image);
-            for (int j = 0; j < classCount; ++j) {
-                auto klass = il2cpp_image_get_class(image, j);
-                auto type = il2cpp_class_get_type(const_cast<Il2CppClass *>(klass));
-                //LOGD("type name : %s", il2cpp_type_get_name(type));
-                auto outPut = imageStr.str() + dump_type(type);
-                outPuts.push_back(outPut);
+            if (strcmp(assemblies[i]->aname.name, "Assembly-CSharp") == 0) {
+                auto image = il2cpp_assembly_get_image(assemblies[i]);
+                auto klass = il2cpp_class_from_name(image, "", "UIMiniIconBaseCtrl");
+                auto method = il2cpp_class_get_method_from_name(klass, "IsVisible", 1);
+                auto addr = method->methodPointer;
+                LOGI("il2cpp::hook ok.",addr);
             }
+
         }
-    } else {
-        LOGI("Version less than 2018.3");
-        //使用反射
-        auto corlib = il2cpp_get_corlib();
-        auto assemblyClass = il2cpp_class_from_name(corlib, "System.Reflection", "Assembly");
-        auto assemblyLoad = il2cpp_class_get_method_from_name(assemblyClass, "Load", 1);
-        auto assemblyGetTypes = il2cpp_class_get_method_from_name(assemblyClass, "GetTypes", 0);
-        if (assemblyLoad && assemblyLoad->methodPointer) {
-            LOGI("Assembly::Load: %p", assemblyLoad->methodPointer);
-        } else {
-            LOGI("miss Assembly::Load");
-            return;
-        }
-        if (assemblyGetTypes && assemblyGetTypes->methodPointer) {
-            LOGI("Assembly::GetTypes: %p", assemblyGetTypes->methodPointer);
-        } else {
-            LOGI("miss Assembly::GetTypes");
-            return;
-        }
-        typedef void *(*Assembly_Load_ftn)(void *, Il2CppString *, void *);
-        typedef Il2CppArray *(*Assembly_GetTypes_ftn)(void *, void *);
-        for (int i = 0; i < size; ++i) {
-            auto image = il2cpp_assembly_get_image(assemblies[i]);
-            std::stringstream imageStr;
-            auto image_name = il2cpp_image_get_name(image);
-            imageStr << "\n// Dll : " << image_name;
-            //LOGD("image name : %s", image->name);
-            auto imageName = std::string(image_name);
-            auto pos = imageName.rfind('.');
-            auto imageNameNoExt = imageName.substr(0, pos);
-            auto assemblyFileName = il2cpp_string_new(imageNameNoExt.c_str());
-            auto reflectionAssembly = ((Assembly_Load_ftn) assemblyLoad->methodPointer)(nullptr,
-                                                                                        assemblyFileName,
-                                                                                        nullptr);
-            auto reflectionTypes = ((Assembly_GetTypes_ftn) assemblyGetTypes->methodPointer)(
-                    reflectionAssembly, nullptr);
-            auto items = reflectionTypes->vector;
-            for (int j = 0; j < reflectionTypes->max_length; ++j) {
-                auto klass = il2cpp_class_from_system_type((Il2CppReflectionType *) items[j]);
-                auto type = il2cpp_class_get_type(klass);
-                //LOGD("type name : %s", il2cpp_type_get_name(type));
-                auto outPut = imageStr.str() + dump_type(type);
-                outPuts.push_back(outPut);
-            }
-        }
-    }
-    LOGI("write dump file");
-    auto outPath = std::string(outDir).append("/files/dump.cs");
-    std::ofstream outStream(outPath);
-    outStream << imageOutput.str();
-    auto count = outPuts.size();
-    for (int i = 0; i < count; ++i) {
-        outStream << outPuts[i];
-    }
-    outStream.close();
-    LOGI("dump done!");
+    } 
+
 }
