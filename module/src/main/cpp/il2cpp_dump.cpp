@@ -383,7 +383,7 @@ void il2cpp_dump(void *handle, char *outDir) {
                 auto klass = il2cpp_class_from_name(image, "", "UIMiniIconBaseCtrl");
                 auto method = il2cpp_class_get_method_from_name(klass, "IsVisible", 1);
                 auto addr = method->methodPointer;
-                LOGI("il2cpp::hook ok.",addr);
+                LOGI("il2cpp::hook : %" PRIx64"", addr);
             }
 
         }
